@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./Userprofile.css">
-    <title>User Profile</title>
+    <title>Credit Based Document Scanning System</title>
 
 </head>
 <body>
     <!-- <h1>User Profile</h1> -->
+    <div class="message-container" id="messageContainer"></div>
     <div class="profile-info">
         <p><strong>Username:</strong> <span id="username"></span></p>
         <p><strong>Number of Credits:</strong> <span id="credits"></span></p>
@@ -24,17 +25,35 @@
     <div id="uploadSection" style="display: none;">
         <h3>Upload Document</h3>
         <form id="uploadForm">
-            <input type="file" id="fileInput" accept=".txt" required />
+            <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx" required />
             <button type="submit">Upload</button>
         </form>
     </div>
 
     <div id="matchesSection" style="display: none;">
-        <h3>Matching Documents</h3>
+        <h3>Get Document</h3>
         <ul id="matchesList"></ul>
     </div>
 
     <script>
+
+function showMessage(text, type = 'success') {
+            const container = document.getElementById('messageContainer');
+            const message = document.createElement('div');
+            message.textContent = text;
+            message.className = `message ${type}`;
+            
+            container.appendChild(message);
+            
+            
+            setTimeout(() => message.classList.add('show'), 10);
+            
+            
+            setTimeout(() => {
+                message.classList.remove('show');
+                setTimeout(() => message.remove(), 300);
+            }, 5000);
+        }
         // Fetch and display user profile information
         const token = localStorage.getItem('token');
 
@@ -82,13 +101,15 @@
             const file = fileInput.files[0];
 
             if (!file) {
-                alert('Please select a file to upload.');
+                showMessage('Please select a file to upload', 'error');
                 return;
             }
 
             const reader = new FileReader();
+            reader.readAsText(file , "UTF-8");
             reader.onload = async (event) => {
                 const content = event.target.result;
+                console.log(content)
 
                 try {
                     const response = await fetch('http://localhost:8080/scanupload', {
@@ -103,8 +124,10 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        alert('Document uploaded successfully!');
+                        showMessage('Document uploaded successfully!');
                         fetchProfile(); // Refresh credit balance
+                        fileInput.value = '';
+                        document.getElementById('uploadSection').style.display = 'none';
                     } else {
                         alert(data.error || 'Failed to upload document.');
                     }
@@ -138,7 +161,7 @@
                     })
                     .catch((error) => {
                         console.error('Error requesting credits:', error);
-                        alert('An error occurred. Please try again.');
+                        showMessage('An error occurred. Please try again.');
                     });
             } else {
                 alert('Please enter a valid number.');
@@ -149,6 +172,7 @@
         const viewMatches = () => {
             document.getElementById('matchesSection').style.display = 'block';
             const docId = prompt('Enter the document ID to find matches:');
+            console.log("Entered doc id");
             if (docId) {
                 fetch(`http://localhost:8080/matched/${docId}`, {
                     method: 'GET',
@@ -161,15 +185,17 @@
                         const matchesList = document.getElementById('matchesList');
                         matchesList.innerHTML = ''; // Clear previous results
 
-                        if (data.length > 0) {
-                            data.forEach((doc) => {
-                                const li = document.createElement('li');
-                                li.textContent = `Filename: ${doc.filename}, Uploaded At: ${doc.uploaded_at}`;
-                                matchesList.appendChild(li);
-                            });
-                        } else {
-                            matchesList.innerHTML = '<li>No matching documents found.</li>';
-                        }
+                        console.log(data);
+
+                        // if (data.length > 0) {
+                        //     data.forEach((doc) => {
+                        //         const li = document.createElement('li');
+                        //         li.textContent = `Filename: ${doc.filename}, Uploaded At: ${doc.uploaded_at}`;
+                        //         matchesList.appendChild(li);
+                        //     });
+                        // } else {
+                        //     matchesList.innerHTML = '<li>No matching documents found.</li>';
+                        // }
                     })
                     .catch((error) => {
                         console.error('Error fetching matches:', error);

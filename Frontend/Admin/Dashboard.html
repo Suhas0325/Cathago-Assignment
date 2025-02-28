@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        .approve {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        .deny {
+            background-color: #f44336;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+
+    <!-- Credit Requests Section -->
+    <h2>Credit Requests</h2>
+    <table id="creditRequestsTable">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be populated dynamically -->
+        </tbody>
+    </table>
+
+    <!-- Analytics Section -->
+    <h2>Analytics</h2>
+    <table id="analyticsTable">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Scan Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be populated dynamically -->
+        </tbody>
+    </table>
+
+    <script>
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            alert('You are not logged in. Redirecting to login page...');
+            window.location.href = '/login.html';
+        }
+
+        // Fetch and display credit requests
+        const fetchCreditRequests = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/admin/credit-requests', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const tableBody = document.querySelector('#creditRequestsTable tbody');
+                    tableBody.innerHTML = ''; // Clear previous rows
+
+                    data.forEach(request => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${request.username}</td>
+                            <td>${request.amount}</td>
+                            <td>${request.status}</td>
+                            <td>
+                                <button class="approve" onclick="handleCreditRequest(${request.id}, 'approved')">Approve</button>
+                                <button class="deny" onclick="handleCreditRequest(${request.id}, 'denied')">Deny</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    alert(data.error || 'Failed to fetch credit requests.');
+                }
+            } catch (error) {
+                console.error('Error fetching credit requests:', error);
+                alert('An error occurred. Please try again.');
+            }
+        };
+
+        // Handle credit request approval/denial
+        const handleCreditRequest = async (requestId, action) => {
+            try {
+                const response = await fetch(`http://localhost:8080/admin/credit-requests/${requestId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ action }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`Credit request ${action} successfully!`);
+                    fetchCreditRequests(); // Refresh the table
+                } else {
+                    alert(data.error || 'Failed to update credit request.');
+                }
+            } catch (error) {
+                console.error('Error updating credit request:', error);
+                alert('An error occurred. Please try again.');
+            }
+        };
+
+        // Fetch and display analytics
+        const fetchAnalytics = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/admin/analytics', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const tableBody = document.querySelector('#analyticsTable tbody');
+                    tableBody.innerHTML = ''; // Clear previous rows
+
+                    data.forEach(stat => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${stat.username}</td>
+                            <td>${stat.scan_count}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    alert(data.error || 'Failed to fetch analytics.');
+                }
+            } catch (error) {
+                console.error('Error fetching analytics:', error);
+                alert('An error occurred. Please try again.');
+            }
+        };
+
+        // Fetch data on page load
+        fetchCreditRequests();
+        fetchAnalytics();
+    </script>
+</body>
+</html>

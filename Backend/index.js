@@ -103,9 +103,13 @@ app.get('/users/profile' , (req, res)=>{
 
 app.post('/scanupload' , (req , res)=>{
     // uses one credit (we need to deduct the credit)
-    const userId = req.session.userId;
+    const token = req.headers.authorization.split(' ')[1];
     const { filename, content } = req.body;
 
+
+    const decoded = jwt.verify(token, 'suhas-assignment'); // Replace 'your-secret-key' with your actual secret key
+    const userId = decoded.id;
+    console.log(userId)
     // Deduct 1 credit
     db.run('UPDATE users SET credits = credits - 1 WHERE id = ?', [userId], function (err) {
         if (err || this.changes === 0) {
@@ -132,20 +136,27 @@ app.get('/matched/:docID' , async (req , res)=>{
 
     const docId =  req.params;
 
+    console.log("Hello")
+    console.log(docId);
+
     db.get(
         'SELECT * FROM documents where id = ?', [docId] ,
         async (err ,  doc) => {
             if(err || !doc){
                 return res.status(400).json("Document Not found")
             }
-            res.json(docId)
+            console.log(doc)
+            res.json(doc)
         })
 })
 
 app.post('/credits/request',(req, res)=>{
     // Request admin to add credits
-    const userId = req.session.userId;
+    const token = req.headers.authorization?.split(' ')[1];
     const { amount } = req.body;
+
+    const decoded = jwt.verify(token, 'suhas-assignment'); 
+    const userId = decoded.id;
 
     db.run(
         'INSERT INTO credit_requests (user_id, amount) VALUES (?, ?)',
@@ -160,6 +171,72 @@ app.post('/credits/request',(req, res)=>{
     
 })
 
+
+app.get('/admin/credit-requests', (req,res)=>{
+   
+    
+    db.all(
+        'SELECT credit_requests.id, users.username, credit_requests.amount, credit_requests.status FROM credit_requests JOIN users ON credit_requests.user_id = users.id',
+        (err, rows) => {
+            if (err) {
+                return res.status(400).json({ error: 'Failed to fetch credit requests' });
+            }
+            res.json(rows);
+        }
+    );
+
+});
+
+app.put('/admin/credit-requests/:id', (req, res) => {
+    const { id } = req.params;
+    const { action } = req.body;
+
+    // Validate action
+    if (!['approved', 'denied'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    // Update the credit request status
+    db.run(
+        'UPDATE credit_requests SET status = ? WHERE id = ?',
+        [action, id],
+        function (err) {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: 'Failed to update credit request' });
+            }
+
+            // If the action is "approved", update the user's credits
+            if (action === 'approved') {
+                db.get(
+                    'SELECT amount FROM credit_requests WHERE id = ?',
+                    [id],
+                    (err, request) => {
+                        if (err) {
+                            console.error('Database error:', err);
+                            return res.status(500).json({ error: 'Failed to fetch credit request details' });
+                        }
+
+                        db.run(
+                            'UPDATE users SET credits = credits + ? WHERE id = (SELECT user_id FROM credit_requests WHERE id = ?)',
+                            [request.amount, id],
+                            function (err) {
+                                if (err) {
+                                    console.error('Database error:', err);
+                                    return res.status(500).json({ error: 'Failed to update user credits' });
+                                }
+
+                                res.json({ message: `Credit request ${action}` });
+                            }
+                        );
+                    }
+                );
+            } else {
+                res.json({ message: `Credit request ${action}` });
+            }
+        }
+    );
+});
 
 app.get('/admin/analytics',(reqc, res)=>{
     db.all(
