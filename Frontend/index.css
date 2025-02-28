@@ -1,0 +1,46 @@
+.head{
+    font-weight: 600;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+   margin-top: 200px;
+}
+
+.Sign{
+    display: flex;
+    flex-direction: column;
+   align-items: center;
+   justify-content: center;
+    gap: 5px;
+
+}
+
+
+
+.Sign input{
+    padding: 10px 1px 10px 1px;
+    border-radius: 5px;
+    width: 400px;
+    padding-left: 2px;
+    border:  2px solid black;
+}
+
+
+
+.Sign button{
+    padding: 10px 1px 10px 1px;
+    width: 400px;
+    background-color: black;
+    color: white;
+    border-radius: 5px;
+    border: none;
+
+}
+
+
+.exist{
+    display: flex;
+    flex-direction: row;
+   justify-content: center;
+   font-size: 15px;
+}
+

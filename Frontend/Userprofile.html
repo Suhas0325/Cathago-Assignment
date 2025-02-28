@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./Userprofile.css">
+    <title>User Profile</title>
+
+</head>
+<body>
+    <!-- <h1>User Profile</h1> -->
+    <div class="profile-info">
+        <p><strong>Username:</strong> <span id="username"></span></p>
+        <p><strong>Number of Credits:</strong> <span id="credits"></span></p>
+    </div>
+    <h2 style="text-align: center;">Actions</h2>
+    <div class="actions">
+        
+        <button onclick="uploadDocument()">Upload Document</button>
+        <button onclick="requestCredits()">Request Credits</button>
+        <button onclick="viewMatches()">View Matches</button>
+    </div>
+
+    <div id="uploadSection" style="display: none;">
+        <h3>Upload Document</h3>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" accept=".txt" required />
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+    <div id="matchesSection" style="display: none;">
+        <h3>Matching Documents</h3>
+        <ul id="matchesList"></ul>
+    </div>
+
+    <script>
+        // Fetch and display user profile information
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            alert('You are not logged in. Redirecting to login page...');
+            window.location.href = '/login.html';
+        }
+
+        // Fetch user profile data
+        const fetchProfile = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/users/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('username').textContent = data.username;
+                    document.getElementById('credits').textContent = data.credits;
+                } else {
+                    alert(data.error || 'Failed to fetch profile data.');
+                }
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                alert('An error occurred. Please try again.');
+            }
+        };
+
+        // Fetch profile data on page load
+        fetchProfile();
+
+        // Upload document
+        const uploadDocument = () => {
+            document.getElementById('uploadSection').style.display = 'block';
+        };
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const content = event.target.result;
+
+                try {
+                    const response = await fetch('http://localhost:8080/scanupload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ filename: file.name, content }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert('Document uploaded successfully!');
+                        fetchProfile(); // Refresh credit balance
+                    } else {
+                        alert(data.error || 'Failed to upload document.');
+                    }
+                } catch (error) {
+                    console.error('Error uploading document:', error);
+                    alert('An error occurred. Please try again.');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Request credits
+        const requestCredits = () => {
+            const amount = prompt('Enter the number of credits you want to request:');
+            if (amount && !isNaN(amount)) {
+                fetch('http://localhost:8080/credits/request', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ amount: parseInt(amount) }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (response.ok) {
+                            alert('Credit request submitted successfully!');
+                        } else {
+                            alert(data.error || 'Failed to submit credit request.');
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error requesting credits:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+            } else {
+                alert('Please enter a valid number.');
+            }
+        };
+
+        // View matching documents
+        const viewMatches = () => {
+            document.getElementById('matchesSection').style.display = 'block';
+            const docId = prompt('Enter the document ID to find matches:');
+            if (docId) {
+                fetch(`http://localhost:8080/matched/${docId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const matchesList = document.getElementById('matchesList');
+                        matchesList.innerHTML = ''; // Clear previous results
+
+                        if (data.length > 0) {
+                            data.forEach((doc) => {
+                                const li = document.createElement('li');
+                                li.textContent = `Filename: ${doc.filename}, Uploaded At: ${doc.uploaded_at}`;
+                                matchesList.appendChild(li);
+                            });
+                        } else {
+                            matchesList.innerHTML = '<li>No matching documents found.</li>';
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error fetching matches:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+            }
+        };
+    </script>
+</body>
+</html>

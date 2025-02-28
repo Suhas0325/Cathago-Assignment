@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./Login.css">
+    <title>Document</title>
+</head>
+<body>
+  <h2 class="head2">Sign In</h2>
+    <form id="SigninForm" class="Signin">
+        <input type="text" placeholder="Enter userName" id="username"/>
+        <input type="password"  placeholder="Enter password" id="password"/>
+        <button type="submit">Sign in</button>
+    </form>
+
+    <div class="exist">
+      <p>Doesn't have an account?</p>
+      <a href="./index.html">
+  
+          <p><strong>Sign Up</strong> </p>
+      </a>
+      
+  </div>
+    <script>
+        document.getElementById('SigninForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const response = await fetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        window.location.href = './Userprofile.html'
+        alert('Login successful!');
+      } else {
+        alert(data.error);
+      }
+    });
+    </script>
+</body>
+</html>

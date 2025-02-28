@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./index.css">
+    <title>Credit Based Document Scanning System</title>
+</head>
+<body>
+    <div class="head">
+        <h2>Sign Up</h2></div>
+    <form id="SignupForm" class="Sign">
+        <input type="text" placeholder="Enter your userName" id="Box1"/>
+        <input type="password" placeholder="Enter your password" id="pass1"/>
+        <input type="password" placeholder="Re-Enter password" id="pass2"/>
+        <button type="submit">Sign Up</button>
+    </form>
+<div class="exist">
+    <p>Already an existing user?</p>
+    <a href="./Login.html">
+
+        <p><strong>Sign in</strong> </p>
+    </a>
+    
+</div>
+
+    <script>
+        document.getElementById('SignupForm').addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const username = document.getElementById('Box1').value;
+            const password1 = document.getElementById('pass1');
+            const password2 = document.getElementById('pass2');
+
+            if(password1.value === password2.value){
+                const response = await fetch('http://localhost:8080/auth/register',{
+                    method : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body : JSON.stringify({username , password: password1.value})
+                });
+                const data = await response.json();
+                console.log(data)
+                if(response.ok){
+                 window.location.href = './login.html'   
+                }
+                else {
+                    alert(data.error || 'Signup failed. Please try again.');
+                }
+            }
+        })
+    </script>
+</body>
+</html>
