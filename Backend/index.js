@@ -238,6 +238,40 @@ app.put('/admin/credit-requests/:id', (req, res) => {
     );
 });
 
+
+app.put('/admin/users/:id/credits', (req, res) => {
+    const { id } = req.params;
+    const { action, amount } = req.body;
+
+    // Validate action
+    if (!['add', 'subtract'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    // Validate amount
+    if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    // Update user credits
+    const query = action === 'add'
+        ? 'UPDATE users SET credits = credits + ? WHERE id = ?'
+        : 'UPDATE users SET credits = credits - ? WHERE id = ?';
+
+    db.run(
+        query,
+        [amount, id],
+        function (err) {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ error: 'Failed to update user credits' });
+            }
+
+            res.json({ message: `User credits ${action === 'add' ? 'increased' : 'decreased'} by ${amount}` });
+        }
+    );
+});
+
 app.get('/admin/analytics',(reqc, res)=>{
     db.all(
         'SELECT users.username, COUNT(documents.id) AS scan_count FROM users LEFT JOIN documents ON users.id = documents.user_id GROUP BY users.id',
